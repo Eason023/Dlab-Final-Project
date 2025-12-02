@@ -22,9 +22,6 @@ module physic (
     input wire [9:0] p1_pos_x_i, p1_pos_y_i,
     input wire [9:0] p2_pos_x_i, p2_pos_y_i,
 
-    //-----------------------------------------------------
-    // Output: 輸出球的當前位置和遊戲狀態
-    //-----------------------------------------------------
     output reg [9:0] ball_pos_x, ball_pos_y,
     
     output reg [3:0] p1_score, p2_score,

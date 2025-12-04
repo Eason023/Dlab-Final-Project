@@ -1,127 +1,122 @@
-// physic.v
-//-----------------------------------------------------------------------------
-// ¼Ò²Õ¥\¯à¡G±Mª`©ó¥Ö¥d¥C¥´±Æ²y¹CÀ¸¤¤ªº¡i²yÅéª«²z¹B°Ê¡j©M¡i±o¤À§P©w¡j¡C
-// ³B²z²yªº¦ì¸m¡B³t«×¡B­«¤O¡BÀô¹Ò¸I¼²©M¨¤¦â¸I¼²«áªº¤Ï¼u­pºâ¡C
-// ¸ÑªR«×¥Ø¼Ğ¡G320 x 240
-//-----------------------------------------------------------------------------
-
 module physic (
     input wire clk,
     input wire rst_n,
 
-    // P1 & P2 °Ê§@¿é¤J (¶È±µ¦¬¾Ş§@¡A¥Î©óÀ»²y§PÂ_)
+    // P1 & P2 å‹•ä½œè¼¸å…¥ (é›–ç„¶ Player è‡ªå·±ç®—åº§æ¨™ï¼Œä½†ä¿ç•™é€™äº›æ¥å£ä»¥é˜²è¬ä¸€ï¼Œå¤–éƒ¨æ¥ 0 å³å¯)
     input wire p1_op_move_left, input wire p1_op_move_right, input wire p1_op_jump,
     input wire p2_op_move_left, input wire p2_op_move_right, input wire p2_op_jump,
-
-    // ¸I¼²°»´úµ²ªG¿é¤J (¨Ó¦Û render/bounding detect ¼Ò²Õ)
-    input wire p1_cover, // P1 ª±®a»P²y¬O§_µo¥Í¸I¼²
-    input wire p2_cover, // P2 ª±®a»P²y¬O§_µo¥Í¸I¼²
     
-    // ª±®aªº·í«e¦ì¸m (¶È¥Î©ó­pºâÀ»²y«áªº²yÅé°_©l¦ì¸m)
-    // «O«ù [9:0] ¦ì¼e¡A¦ı­È·|­­¨î¦b 0-320/240 ½d³ò
+    // æ®ºçƒè¨Šè™Ÿ (æ–°å¢ï¼Œç”¨æ–¼å¯¦ç¾é€²éšåŠŸèƒ½)
+    input wire p1_is_smash,
+    input wire p2_is_smash,
+
+    // ç¢°æ’åµæ¸¬ (ä¾†è‡ª Render)
+    input wire p1_cover, // P1 ç¢°åˆ°çƒ
+    input wire p2_cover, // P2 ç¢°åˆ°çƒ
+    
+    // ç©å®¶ä½ç½® (ä¾†è‡ª Player æ¨¡çµ„)
     input wire [9:0] p1_pos_x_i, p1_pos_y_i,
     input wire [9:0] p2_pos_x_i, p2_pos_y_i,
 
     output reg [9:0] ball_pos_x, ball_pos_y,
-    
     output reg [3:0] p1_score, p2_score,
-    output reg game_over // ¹CÀ¸¬O§_µ²§ô (¦³±o¤À/²y¸¨¦a)
+    output reg game_over // 1 = å¾—åˆ†/çµæŸ
 );
     
-    //¦ì¼e©w¸q
-    localparam COORD_W = 10; // ®y¼Ğ¦ì¼e (0-1023), ¹ê»Ú¨Ï¥Î 0-320/240
-    localparam VEL_W   = 10; // ³t«×¦ì¼e (©wÂI¼Æ Q4.6)
-    localparam FRAC_W  = 6;  // ©wÂI¼Æªº¤p¼Æ³¡¤À¦ì¼e
-    localparam SCORE_W = 4;  // ¤À¼Æ¦ì¼e (0-15)
+    // --- åƒæ•¸è¨­å®š ---
+    localparam COORD_W = 10; 
+    localparam VEL_W   = 10; 
+    localparam FRAC_W  = 6;  // å°æ•¸é»ä½æ•¸ Q4.6
+    localparam SCORE_W = 4;  
 
-    //ª«²z±`¼Æ (©wÂI¼Æ Q4.6: 1.0 = 10'd64)
+    // ç‰©ç†å¸¸æ•¸ (1.0 = 64)
     localparam FRAC_ONE = 10'd64; 
-    localparam GRAVITY = 10'd2;   
-    localparam BOUNCE_DAMPING = 10'd55; 
+    localparam GRAVITY  = 10'd1;    
+    localparam BOUNCE_DAMPING = 10'd55; // å½ˆæ€§ä¿‚æ•¸
 
-    //À»²y¤Ï¼u³t«×
-    localparam P1_HIT_VX = 10'd192; 
-    localparam P1_HIT_VY = 10'd320; 
+    // æ“Šçƒé€Ÿåº¦ (ä¸€èˆ¬)
+    localparam P1_HIT_VX = 10'd192; // 3.0
+    localparam P1_HIT_VY = 10'd320; // 5.0 (å‘ä¸Š)
     localparam P2_HIT_VX = -10'd192; 
     localparam P2_HIT_VY = 10'd320; 
 
-    localparam SCREEN_WIDTH = 10'd320;
+    // æ“Šçƒé€Ÿåº¦ (æ®ºçƒ - Advanced Function)
+    localparam P1_SMASH_VX = 10'd320; // 5.0 (æ›´å¿«)
+    localparam P1_SMASH_VY = 10'd448; // 7.0 (æ›´é«˜/æ›´å¹³)
+    localparam P2_SMASH_VX = -10'd320;
+    localparam P2_SMASH_VY = 10'd448;
+
+    // å ´åœ°åƒæ•¸ (æ³¨æ„ï¼šé€™è£¡ç¶­æŒä½ åŸå§‹çš„ Y è»¸å‘ä¸Šé‚è¼¯)
+    localparam SCREEN_WIDTH  = 10'd320;
     localparam SCREEN_HEIGHT = 10'd240;
 
-    localparam NET_X_POS = 10'd160;     // ²yºô X ®y¼Ğ (¤¤½u 320/2)
-    localparam NET_W = 10'd6;           // ²yºô¥b¼e (±z­n¨Dªº°Ñ¼Æ)
-    localparam NET_H = 10'd90;          // ²yºô°ª«× (±z­n¨Dªº°Ñ¼Æ)
-    localparam FLOOR_Y_POS = 10'd30;    // ¦a­± Y ®y¼Ğ (¬Û¹ï¸û§C)
+    localparam NET_X_POS   = 10'd160;     
+    localparam NET_W       = 10'd6;            
+    localparam NET_H       = 10'd90;           
+    localparam FLOOR_Y_POS = 10'd30; // åœ°æ¿åœ¨ Y=30 (ä¸‹æ–¹)
     
-    localparam NET_TOP_Y = FLOOR_Y_POS + NET_H; // ²yºô³»³¡ Y ®y¼Ğ
+    localparam NET_TOP_Y = FLOOR_Y_POS + NET_H; // ç¶²é ‚ Y = 120
 
-    localparam LEFT_WALL_X = 10'd0;
-    localparam RIGHT_WALL_X = SCREEN_WIDTH - 1; // 319
+    localparam LEFT_WALL_X  = 10'd0;
+    localparam RIGHT_WALL_X = SCREEN_WIDTH - 1; 
 
-    localparam BALL_INIT_X = NET_X_POS;
-    localparam BALL_INIT_Y = 10'd150; // µe­±¤¤½u°¾¤W
+    localparam BALL_INIT_X = 10'd260;
+    localparam BALL_INIT_Y = 10'd150; // å¾ç©ºä¸­æ‰ä¸‹ä¾†
     
-    reg [VEL_W-1:0] ball_vel_x, ball_vel_y;
+    // --- è®Šæ•¸å®£å‘Š ---
+    reg signed [VEL_W-1:0] ball_vel_x, ball_vel_y;
     
-    wire [VEL_W-1:0] ball_vel_y_calc; 
-    wire [COORD_W-1:0] ball_pos_y_calc;
+    wire signed [VEL_W-1:0] ball_vel_y_calc; 
+    wire signed [COORD_W-1:0] ball_pos_y_calc;
+    wire signed [COORD_W-1:0] ball_pos_x_calc;
     
     wire ball_hit_floor_p1_side; 
     wire ball_hit_floor_p2_side; 
     
-    // ·s¼Wºô¤l³»³¡¸I¼²
     wire ball_hit_net_top;
-    // ­×§ïºô¤l°¼­±¸I¼²
     wire ball_hit_net_side_p1;
     wire ball_hit_net_side_p2;
-
-    wire ball_hit_wall_side;     
+    wire ball_hit_wall_side;      
     
-    //1. ª«²z¹B°Ê¾Ç­pºâ (¤U¤@¶g´Á¹w­pª¬ºA)
-
+    // 1. ç‰©ç†é‹ç®— (Y è»¸å‘ä¸Šç‚ºæ­£ï¼Œé‡åŠ›ç‚ºæ¸›)
     assign ball_vel_y_calc = ball_vel_y - GRAVITY; 
     assign ball_pos_y_calc = ball_pos_y + (ball_vel_y_calc >>> FRAC_W);
+    assign ball_pos_x_calc = ball_pos_x + (ball_vel_x >>> FRAC_W);
     
-    //2. Àô¹Ò¸I¼²»P±o¤À°»´ú
-
-    // ²y¸¨¦a/±o¤À°»´ú (²yªº Y ®y¼Ğ¤p©óµ¥©ó¦a­± Y ®y¼Ğ)
+    // 2. ç¢°æ’æª¢æ¸¬
+    // æ‰åˆ°åœ°æ¿ (Y <= 30)
     assign ball_hit_floor_p1_side = (ball_pos_y_calc <= FLOOR_Y_POS) && (ball_pos_x_calc < NET_X_POS);
     assign ball_hit_floor_p2_side = (ball_pos_y_calc <= FLOOR_Y_POS) && (ball_pos_x_calc >= NET_X_POS);
 
-    // ºô¤lX¶b½d³ò§PÂ_
+    // ç¶²å­ç¯„åœ
     wire ball_in_net_x_range = (ball_pos_x < NET_X_POS + NET_W) && (ball_pos_x > NET_X_POS - NET_W);
 
-    // ºô¤l³»³¡¸I¼² (±q¤W¤è¯{¨ìºô³»)
+    // æ’ç¶²é ‚ (å¾ä¸Šå¾€ä¸‹æ‰åˆ°ç¶²å­ä¸Š)
     assign ball_hit_net_top = ball_in_net_x_range && 
-                              (ball_pos_y > NET_TOP_Y) &&           // ·í«e¦bºô³»¤W¤è
-                              (ball_pos_y_calc <= NET_TOP_Y);       // ¤U¤@¶g´Á¼²¨ìºô³»
+                              (ball_pos_y > NET_TOP_Y) &&            
+                              (ball_pos_y_calc <= NET_TOP_Y);        
 
-    // ºô¤l°¼­±¸I¼² (¼²¨ìºô¤l¥DÅé¡A±Æ°£ºô³»)
+    // æ’ç¶²å´ (ä½æ–¼ç¶²é ‚)
     assign ball_hit_net_side_p1 = ball_in_net_x_range && 
-                                  (ball_pos_x_calc < NET_X_POS) &&  // ²y¤ß¦b P1 °¼
-                                  (ball_pos_y_calc <= NET_TOP_Y) && // ¥B°ª«×¦bºô¤l¥DÅé¤º
+                                  (ball_pos_x_calc < NET_X_POS) && 
+                                  (ball_pos_y_calc <= NET_TOP_Y) && 
                                   (ball_pos_y_calc > FLOOR_Y_POS);
 
     assign ball_hit_net_side_p2 = ball_in_net_x_range && 
-                                  (ball_pos_x_calc >= NET_X_POS) && // ²y¤ß¦b P2 °¼
-                                  (ball_pos_y_calc <= NET_TOP_Y) && // ¥B°ª«×¦bºô¤l¥DÅé¤º
+                                  (ball_pos_x_calc >= NET_X_POS) && 
+                                  (ball_pos_y_calc <= NET_TOP_Y) && 
                                   (ball_pos_y_calc > FLOOR_Y_POS);
                                   
-    // Àğ¾À¸I¼²
     assign ball_hit_wall_side = (ball_pos_x_calc <= LEFT_WALL_X) || (ball_pos_x_calc >= RIGHT_WALL_X);
     
-    //3. ¸I¼²¤ÏÀ³»Pª¬ºA§ó·s (®Ö¤ß²Õ¦XÅŞ¿è)
-    
-    reg [VEL_W-1:0] final_vel_x, final_vel_y;
-    reg [COORD_W-1:0] final_pos_x, final_pos_y;
+    // 3. ç‹€æ…‹æ›´æ–°
+    reg signed [VEL_W-1:0] final_vel_x, final_vel_y;
+    reg signed [COORD_W-1:0] final_pos_x, final_pos_y;
     reg [SCORE_W-1:0] p1_score_next, p2_score_next;
-    
     reg score_happened; 
-    
-    assign game_over = score_happened; 
 
     always @(*) begin
-        // ¹w³]¤U¤@ª¬ºA
+        // é è¨­å€¼
         final_vel_x = ball_vel_x;
         final_vel_y = ball_vel_y_calc;
         final_pos_x = ball_pos_x + (ball_vel_x >>> FRAC_W);
@@ -131,84 +126,98 @@ module physic (
         p2_score_next = p2_score;
         score_happened = 1'b0; 
 
-        // A. Àu¥ı¯Å³Ì°ªªº¸I¼²¡G¨¤¦âÀ»²y (¥~³¡¿é¤J p1_cover/p2_cover)
+        // A. ç©å®¶æ“Šçƒ (å„ªå…ˆæ¬Šæœ€é«˜)
         if (p1_cover || p2_cover) begin
             if (p1_cover) begin
-                final_vel_x = P1_HIT_VX;
-                final_vel_y = P1_HIT_VY;
-                final_pos_x = p1_pos_x_i + 30; // ½T«O¤£¥dÂI
-                final_pos_y = p1_pos_y_i + 30;
+                // åˆ¤æ–·æ˜¯å¦æ®ºçƒ
+                if (p1_is_smash) begin
+                    final_vel_x = P1_SMASH_VX;
+                    final_vel_y = P1_SMASH_VY;
+                end else begin
+                    final_vel_x = P1_HIT_VX;
+                    final_vel_y = P1_HIT_VY;
+                end
+                final_pos_x = p1_pos_x_i + 30; // ç¨å¾®å½ˆé–‹é˜²æ­¢é»ä½
+                // æ³¨æ„ï¼šé€™è£¡çš„ p1_pos_y_i å¿…é ˆæ˜¯ Main æ¨¡çµ„å‚³é€²ä¾†çš„ã€Œè½‰æ›å¾Œ(Yå‘ä¸Š)ã€åº§æ¨™
+                final_pos_y = p1_pos_y_i + 30; 
             end
             else if (p2_cover) begin
-                final_vel_x = P2_HIT_VX;
-                final_vel_y = P2_HIT_VY;
-                final_pos_x = p2_pos_x_i - 30; // ½T«O¤£¥dÂI
+                if (p2_is_smash) begin
+                    final_vel_x = P2_SMASH_VX;
+                    final_vel_y = P2_SMASH_VY;
+                end else begin
+                    final_vel_x = P2_HIT_VX;
+                    final_vel_y = P2_HIT_VY;
+                end
+                final_pos_x = p2_pos_x_i - 30;
                 final_pos_y = p2_pos_y_i + 30;
             end
         end
-        // B. Àô¹Ò»P±o¤À¸I¼² (¤º³¡³B²z)
+        // B. ç’°å¢ƒç¢°æ’
         else begin
-            // 1. ±o¤À¸¨¦a (³Ì°ªÀu¥ı¯ÅªºÀô¹Ò¸I¼²)
-            if (ball_hit_floor_p1_side) begin // ²y¸¨¦b P1 °Ï¡AP2 ±o¤À
+            // 1. å¾—åˆ† (æ‰åœ°æ¿)
+            if (ball_hit_floor_p1_side) begin 
                 p2_score_next = p2_score + 1;
                 score_happened = 1'b1; 
             end 
-            else if (ball_hit_floor_p2_side) begin // ²y¸¨¦b P2 °Ï¡AP1 ±o¤À
+            else if (ball_hit_floor_p2_side) begin 
                 p1_score_next = p1_score + 1;
                 score_happened = 1'b1; 
             end
             
-            // 2. ºô¤l³»³¡¸I¼² (±q¤W¤è¸¨¨ìºô¤l¤W)
+            // 2. æ’ç¶²é ‚
             else if (ball_hit_net_top) begin
-                final_vel_y = (~final_vel_y + 1); // ««ª½³t«×¤Ï¦V
-                final_pos_y = NET_TOP_Y;         // Âê©w¦bºô³»
+                final_vel_y = -final_vel_y; // åå½ˆ
+                final_vel_y = (final_vel_y * 3) >>> 2; // èƒ½é‡æè€— (x0.75)
+                final_pos_y = NET_TOP_Y + 5; 
             end
 
-            // 3. ºô¤l°¼­±¸I¼²
+            // 3. æ’ç¶²å´
             else if (ball_hit_net_side_p1 || ball_hit_net_side_p2) begin
-                final_vel_x = (~final_vel_x + 1); // ¤ô¥­³t«×¤Ï¦V
-                // Âê©w¦ì¸m¥H¨¾¤î¬ï³z
-                if (ball_pos_x_calc < NET_X_POS) final_pos_x = NET_X_POS - NET_W; // P1 °¼¤Ï¼u
-                else final_pos_x = NET_X_POS + NET_W;                           // P2 °¼¤Ï¼u
+                final_vel_x = -final_vel_x; 
+                if (ball_pos_x_calc < NET_X_POS) final_pos_x = NET_X_POS - NET_W - 2;
+                else final_pos_x = NET_X_POS + NET_W + 2;
             end
 
-            // 4. ¦a­±¸I¼² («D±o¤À°Ï¡A§Y±Æ²yºô¤U)
+            // 4. åœ°æ¿åå½ˆ (è‹¥æœªçµæŸéŠæˆ²)
             else if (ball_pos_y_calc <= FLOOR_Y_POS) begin
-                // ³t«×¤Ï¦V * °I´î
-                final_vel_y = (FRAC_ONE - ball_vel_y_calc) * BOUNCE_DAMPING / FRAC_ONE;
+                // å¦‚æœå·²ç¶“åˆ¤æ–·å¾—åˆ†ï¼Œé€™è£¡å°±ä¸é‡è¦ï¼Œä½†ç‚ºäº†ç‰©ç†é€£çºŒæ€§ï¼š
+                final_vel_y = -ball_vel_y_calc;
+                final_vel_y = (final_vel_y * BOUNCE_DAMPING) >>> 6; // è¡°æ¸›
                 final_pos_y = FLOOR_Y_POS; 
             end
 
-            // 5. Àğ¾À¸I¼²
+            // 5. ç‰†å£åå½ˆ
             else if (ball_hit_wall_side) begin
-                final_vel_x = (~final_vel_x + 1); 
-                if (ball_pos_x_calc <= LEFT_WALL_X) final_pos_x = LEFT_WALL_X;
-                if (ball_pos_x_calc >= RIGHT_WALL_X) final_pos_x = RIGHT_WALL_X;
+                final_vel_x = -final_vel_x; 
+                if (ball_pos_x_calc <= LEFT_WALL_X) final_pos_x = LEFT_WALL_X + 2;
+                if (ball_pos_x_calc >= RIGHT_WALL_X) final_pos_x = RIGHT_WALL_X - 2;
             end
         end
     end
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            // ¨t²Î­«¸m (µwÅé­«¸m/¹CÀ¸­«¶})
-            ball_pos_x <= BALL_INIT_X; ball_pos_y <= BALL_INIT_Y;
-            ball_vel_x <= 0; ball_vel_y <= 0;
-            p1_score <= 0; p2_score <= 0;
+            ball_pos_x <= BALL_INIT_X; 
+            ball_pos_y <= BALL_INIT_Y;
+            ball_vel_x <= 0; 
+            ball_vel_y <= 0;
+            p1_score <= 0; 
+            p2_score <= 0;
+            game_over <= 0;
         end else begin
+            game_over <= score_happened;
             
-            // ¤À¼Æ§ó·s
             p1_score <= p1_score_next;
             p2_score <= p2_score_next;
 
-            //²yªº¦ì¸m©M³t«×§ó·s (¦pªG±o¤À¡A«h­«¸m²y)
             if (score_happened) begin
-                // ²y±o¤À/µo²y­«¸m®Éªº¦ì¸m/³t«×
+                // å¾—åˆ†é‡ç½®çƒ
                 ball_pos_x <= BALL_INIT_X; 
                 ball_pos_y <= BALL_INIT_Y;
                 ball_vel_x <= 0;
                 ball_vel_y <= 0;
             end else begin
-                // ¥¿±`ª«²z¹B°Ê
                 ball_vel_x <= final_vel_x;
                 ball_vel_y <= final_vel_y;
                 ball_pos_x <= final_pos_x;

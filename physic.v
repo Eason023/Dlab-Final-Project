@@ -59,7 +59,8 @@ module physic (
     localparam LEFT_WALL_X = 10'd0; localparam RIGHT_WALL_X = SCREEN_WIDTH; 
 
     // 初始值
-    localparam BALL_INIT_X = 10'd260; localparam BALL_INIT_Y = 10'd50; 
+    localparam BALL_INIT_X = 10'd260;
+    localparam BALL_INIT_Y = 10'd200;
     localparam P1_INIT_X   = 10'd50;  localparam P1_INIT_Y   = FLOOR_Y_POS - PLAYER_H;
     localparam P2_INIT_X   = 10'd260; localparam P2_INIT_Y   = FLOOR_Y_POS - PLAYER_H; 
     localparam COOLDOWN_MAX = 4'd12; 

@@ -17,10 +17,13 @@ module physic (
     output reg [9:0] ball_pos_x, ball_pos_y,
     
     // --- 遊戲狀態輸出 ---
-    output reg game_over,      // 1 = 球落地 (回合結束)，外部收到這個訊號可以用來加分
-    output reg [1:0] winner,   // 0 = 無, 1 = P1 得分 (球在右邊落地), 2 = P2 得分 (球在左邊落地)
-    output reg valid           // 1 = 資料已更新 (供外部同步用)
+    output reg game_over,      // 1 = 球落地 (回合結束)
+    output reg [1:0] winner,   // 0=無, 1=P1贏, 2=P2贏
+    output reg valid           // 1 = 資料更新完畢
 );
+    
+    
+    //  參數設定 (Parameters)
     
     localparam COORD_W = 10; 
     localparam VEL_W   = 10; 
@@ -61,12 +64,15 @@ module physic (
     localparam P2_INIT_X   = 10'd260; localparam P2_INIT_Y   = FLOOR_Y_POS - PLAYER_H; 
     localparam COOLDOWN_MAX = 4'd12; 
 
+    
+    //  內部變數與 Wire
+    
     reg signed [VEL_W-1:0] ball_vel_x, ball_vel_y;
     reg [3:0] hit_cooldown;
     reg signed [10:0] p1_vel_y, p2_vel_y;
     reg p1_in_air, p2_in_air;
 
-    // 組合邏輯計算用 wire
+    // --- 中心點計算 ---
     wire signed [COORD_W-1:0] ball_center_x = ball_pos_x + BALL_RADIUS;
     wire signed [COORD_W-1:0] ball_center_y = ball_pos_y + BALL_RADIUS;
     wire signed [COORD_W-1:0] p1_center_x = p1_pos_x + PIKA_HALF_W;
@@ -74,36 +80,37 @@ module physic (
     wire signed [COORD_W-1:0] p2_center_x = p2_pos_x + PIKA_HALF_W;
     wire signed [COORD_W-1:0] p2_center_y = p2_pos_y + PIKA_HALF_H;
 
-    // 網子距離
-    wire signed [COORD_W:0] diff_net_Lx = ball_center_x - NET_LEFT_X;
-    wire signed [COORD_W:0] diff_net_Rx = ball_center_x - NET_RIGHT_X;
+    // --- 網子距離計算 (補上這裡) ---
+    wire signed [COORD_W:0] diff_net_left_x = ball_center_x - NET_LEFT_X;
+    wire signed [COORD_W:0] diff_net_right_x = ball_center_x - NET_RIGHT_X;
     wire signed [COORD_W:0] diff_net_y  = ball_center_y - NET_TOP_Y;
-    wire signed [20:0] dist_sq_L = (diff_net_Lx * diff_net_Lx) + (diff_net_y * diff_net_y);
-    wire signed [20:0] dist_sq_R = (diff_net_Rx * diff_net_Rx) + (diff_net_y * diff_net_y);
+    
+    wire signed [20:0] dist_sq_L = (diff_net_left_x * diff_net_left_x) + (diff_net_y * diff_net_y);
+    wire signed [20:0] dist_sq_R = (diff_net_right_x * diff_net_right_x) + (diff_net_y * diff_net_y);
 
-    // 玩家距離
+    // --- 玩家距離計算 (補上這裡) ---
     wire signed [COORD_W:0] diff_p1_x = ball_center_x - p1_center_x;
     wire signed [COORD_W:0] diff_p1_y = ball_center_y - p1_center_y;
     wire signed [COORD_W:0] diff_p2_x = ball_center_x - p2_center_x;
     wire signed [COORD_W:0] diff_p2_y = ball_center_y - p2_center_y;
 
-    // 絕對值
+    // --- 絕對值計算 ---
     wire [COORD_W:0] abs_diff_p1_x = (diff_p1_x < 0) ? -diff_p1_x : diff_p1_x;
     wire [COORD_W:0] abs_diff_p1_y = (diff_p1_y < 0) ? -diff_p1_y : diff_p1_y;
     wire [COORD_W:0] abs_diff_p2_x = (diff_p2_x < 0) ? -diff_p2_x : diff_p2_x;
     wire [COORD_W:0] abs_diff_p2_y = (diff_p2_y < 0) ? -diff_p2_y : diff_p2_y;
-    wire [COORD_W:0] abs_diff_net_Lx = (diff_net_Lx < 0) ? -diff_net_Lx : diff_net_Lx;
-    wire [COORD_W:0] abs_diff_net_Rx = (diff_net_Rx < 0) ? -diff_net_Rx : diff_net_Rx;
+    wire [COORD_W:0] abs_diff_net_Lx = (diff_net_left_x < 0) ? -diff_net_left_x : diff_net_left_x;
+    wire [COORD_W:0] abs_diff_net_Rx = (diff_net_right_x < 0) ? -diff_net_right_x : diff_net_right_x;
     wire [COORD_W:0] abs_diff_net_y  = (diff_net_y < 0) ? -diff_net_y : diff_net_y;
 
-    // 球體預判
+    // --- 球體預判 ---
     wire signed [9:0] ball_vel_y_predict = ball_vel_y + GRAVITY;
     wire signed [9:0] ball_pos_y_predict = ball_pos_y + (ball_vel_y_predict >>> FRAC_W);
     wire signed [9:0] ball_pos_x_predict = ball_pos_x + (ball_vel_x >>> FRAC_W);
     wire signed [9:0] ball_bottom_predict = ball_pos_y_predict + BALL_SIZE;
     wire signed [9:0] ball_right_predict  = ball_pos_x_predict + BALL_SIZE;
 
-    // 碰撞 Flags
+    // --- 碰撞 Flags ---
     wire hit_floor = (ball_bottom_predict >= FLOOR_Y_POS);
     wire hit_corner_L = (dist_sq_L <= BALL_RADIUS_SQ);
     wire hit_corner_R = (dist_sq_R <= BALL_RADIUS_SQ);
@@ -114,7 +121,7 @@ module physic (
     wire hit_wall_L = (ball_pos_x_predict <= LEFT_WALL_X);
     wire hit_wall_R = (ball_right_predict >= RIGHT_WALL_X);
 
-    // 暫存 Next State 變數
+    // --- 暫存 Next State 變數 ---
     reg signed [VEL_W-1:0] next_ball_vx, next_ball_vy;
     reg signed [COORD_W-1:0] next_ball_px, next_ball_py;
     reg next_game_over;
@@ -123,7 +130,9 @@ module physic (
     reg signed [11:0] temp_p1_x, temp_p1_y;
     reg signed [11:0] temp_p2_x, temp_p2_y;
 
-
+    
+    //  State Update Logic
+    
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             // Reset
@@ -140,31 +149,33 @@ module physic (
             valid <= 1;
 
             // --- 1. P1 角色移動 ---
-            // X
             if (p1_op_move_left)  temp_p1_x = p1_pos_x - PLAYER_SPEED;
             else if (p1_op_move_right) temp_p1_x = p1_pos_x + PLAYER_SPEED;
             else temp_p1_x = p1_pos_x;
+            
             if (temp_p1_x < LEFT_WALL_X) temp_p1_x = LEFT_WALL_X;
             else if (temp_p1_x + PLAYER_W > NET_LEFT_X) temp_p1_x = NET_LEFT_X - PLAYER_W;
             p1_pos_x <= temp_p1_x;
-            // Y
+
             if (p1_op_jump && !p1_in_air) begin p1_vel_y <= -JUMP_FORCE; p1_in_air <= 1; end 
             else if (p1_in_air && p1_vel_y < 15) p1_vel_y <= p1_vel_y + GRAVITY;
+            
             temp_p1_y = p1_pos_y + p1_vel_y;
             if (temp_p1_y + PLAYER_H >= FLOOR_Y_POS) begin p1_pos_y <= FLOOR_Y_POS - PLAYER_H; p1_vel_y <= 0; p1_in_air <= 0; end 
             else begin p1_pos_y <= temp_p1_y; if (p1_pos_y + PLAYER_H < FLOOR_Y_POS - 2) p1_in_air <= 1; end
 
             // --- 2. P2 角色移動 ---
-            // X
             if (p2_op_move_left)  temp_p2_x = p2_pos_x - PLAYER_SPEED;
             else if (p2_op_move_right) temp_p2_x = p2_pos_x + PLAYER_SPEED;
             else temp_p2_x = p2_pos_x;
+            
             if (temp_p2_x < NET_RIGHT_X) temp_p2_x = NET_RIGHT_X;
             else if (temp_p2_x + PLAYER_W > RIGHT_WALL_X) temp_p2_x = RIGHT_WALL_X - PLAYER_W;
             p2_pos_x <= temp_p2_x;
-            // Y
+
             if (p2_op_jump && !p2_in_air) begin p2_vel_y <= -JUMP_FORCE; p2_in_air <= 1; end 
             else if (p2_in_air && p2_vel_y < 15) p2_vel_y <= p2_vel_y + GRAVITY;
+            
             temp_p2_y = p2_pos_y + p2_vel_y;
             if (temp_p2_y + PLAYER_H >= FLOOR_Y_POS) begin p2_pos_y <= FLOOR_Y_POS - PLAYER_H; p2_vel_y <= 0; p2_in_air <= 0; end 
             else begin p2_pos_y <= temp_p2_y; if (p2_pos_y + PLAYER_H < FLOOR_Y_POS - 2) p2_in_air <= 1; end
@@ -210,10 +221,8 @@ module physic (
                 end else if (hit_floor) begin
                     if (ball_vel_y_predict > 0) begin next_ball_vy = -ball_vel_y_predict; next_ball_vy = (next_ball_vy * BOUNCE_DAMPING) >>> 6; end
                     next_ball_py = FLOOR_Y_POS - BALL_SIZE;
-                    // 得分判定：觸發 Game Over
                     next_game_over = 1'b1;
-                    if (ball_pos_x_predict < NET_X_POS) next_winner = 2; // P2 得分
-                    else next_winner = 1; // P1 得分
+                    if (ball_pos_x_predict < NET_X_POS) next_winner = 2; else next_winner = 1;
                 end else if (hit_wall_L) begin
                     if (ball_vel_x < 0) next_ball_vx = -ball_vel_x; next_ball_px = LEFT_WALL_X + 2;
                 end else if (hit_wall_R) begin
@@ -221,13 +230,11 @@ module physic (
                 end
             end
 
-            // 更新 Register
             game_over <= next_game_over;
             winner    <= next_winner;
             hit_cooldown <= hit_cooldown_next;
 
             if (next_game_over) begin
-                // 重置球
                 ball_pos_x <= BALL_INIT_X; ball_pos_y <= BALL_INIT_Y;
                 ball_vel_x <= 0; ball_vel_y <= 0;
                 hit_cooldown <= 0;

@@ -29,11 +29,12 @@ module physic (
 
     // 速度與重力
     localparam signed [15:0] GRAVITY      = 16'd25;   // 重力 (約 0.4 px)
-    localparam signed [15:0] JUMP_FORCE   = 16'd800;  // 跳躍力 (12.5 px)
+    localparam signed [15:0] JUMP_FORCE   = 16'd750;  // 跳躍力 (12.5 px)
     localparam signed [15:0] MOVE_SPEED   = 16'd200;  // 玩家移動速度 (5 px)
     localparam signed [15:0] SMASH_X      = 16'd500;  // 殺球 X 速度
     localparam signed [15:0] SMASH_Y      = 16'd100; // 殺球 Y 速度 (向上)
     localparam signed [15:0] BOUNCE_Y     = -16'd700; // 普通頂球高度
+    localparam signed [15:0] FRICTION = 16'd2;
 
     // 尺寸與邊界 (真實像素 * 64)
     localparam signed [19:0] FLOOR_Y      = 16'd480 * SCALE;
@@ -112,6 +113,15 @@ module physic (
                 end
             end
 
+
+            if (ball_vx > 400) begin
+                // 只有往右飛太快時，才減速
+                ball_vx <= ball_vx - FRICTION; 
+            end
+            else if (ball_vx < -400) begin
+                // 只有往左飛太快時，才減速 (加回 0)
+                ball_vx <= ball_vx + FRICTION;
+            end
             // --- 球的移動 (先加重力) ---
             ball_vy <= ball_vy + GRAVITY;
             ball_x <= ball_x + ball_vx;
@@ -179,6 +189,12 @@ module physic (
                 winner <= (ball_x < NET_X) ? 2 : 1;
                 // 碰到地就停住，避免無限運算
                 ball_y <= FLOOR_Y - BALL_SIZE; ball_vx <= 0; ball_vy <= 0;
+            end
+
+            //天花板
+            if(ball_y <= 0) begin
+                ball_y <= 1;
+                ball_vy <= - ball_vy;
             end
             
             // --- 網子碰撞判定 ---

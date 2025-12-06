@@ -43,7 +43,8 @@ module physic (
     localparam signed [15:0] P_W          = 16'd128 * SCALE;
     localparam signed [15:0] NET_H        = 16'd180 * SCALE;
     localparam signed [15:0] NET_X        = 16'd320 * SCALE;
-
+    localparam signed [15:0] BALL_START_L = 16'd120 * SCALE;
+    localparam signed [15:0] BALL_START_R = 16'd440 * SCALE;
     // --- 2. 內部變數 (全部 Signed，且包含放大倍率) ---
     reg signed [19:0] p1_x, p1_y, p1_vy;
     reg signed [19:0] p2_x, p2_y, p2_vy;
@@ -76,7 +77,7 @@ module physic (
             p1_x <= 100 * SCALE; p1_y <= (480 - 128) * SCALE; p1_vy <= 0; p1_air <= 0;
             p2_x <= 520 * SCALE; p2_y <= (480 - 128) * SCALE; p2_vy <= 0; p2_air <= 0;
             
-            ball_x <= 520 * SCALE; 
+            ball_x <= BALL_START_L; 
             ball_y <= 50  * SCALE; // <--- 改這裡！從 50px 高度落下
             ball_vx <= 0; ball_vy <= 0;
             
@@ -186,7 +187,8 @@ module physic (
 
             // 遊戲結束重置位置
             if (game_over) begin
-                ball_x <= 520 * SCALE; ball_y <= 50 * SCALE; // 重置到高空
+                if (winner == 1) ball_x <= BALL_START_R;
+                else ball_x <= BALL_START_L;
                 game_over <= 0;
             end
         end 

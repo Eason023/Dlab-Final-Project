@@ -36,15 +36,15 @@ module physic (
     localparam signed [15:0] BOUNCE_Y     = -16'd700; // 普通頂球高度
 
     // 尺寸與邊界 (真實像素 * 64)
-    localparam signed [15:0] FLOOR_Y      = 16'd480 * SCALE;
-    localparam signed [15:0] SCREEN_W     = 16'd640 * SCALE;
-    localparam signed [15:0] BALL_SIZE    = 16'd80  * SCALE;
-    localparam signed [15:0] P_H          = 16'd128 * SCALE;
-    localparam signed [15:0] P_W          = 16'd128 * SCALE;
-    localparam signed [15:0] NET_H        = 16'd180 * SCALE;
-    localparam signed [15:0] NET_X        = 16'd320 * SCALE;
-    localparam signed [15:0] BALL_START_L = 16'd120 * SCALE;
-    localparam signed [15:0] BALL_START_R = 16'd440 * SCALE;
+    localparam signed [19:0] FLOOR_Y      = 16'd480 * SCALE;
+    localparam signed [19:0] SCREEN_W     = 16'd640 * SCALE;
+    localparam signed [19:0] BALL_SIZE    = 16'd80  * SCALE;
+    localparam signed [19:0] P_H          = 16'd128 * SCALE;
+    localparam signed [19:0] P_W          = 16'd128 * SCALE;
+    localparam signed [19:0] NET_H        = 16'd180 * SCALE;
+    localparam signed [19:0] NET_X        = 16'd320 * SCALE;
+    localparam signed [19:0] BALL_START_L = 16'd120 * SCALE;
+    localparam signed [19:0] BALL_START_R = 16'd440 * SCALE;
     // --- 2. 內部變數 (全部 Signed，且包含放大倍率) ---
     reg signed [19:0] p1_x, p1_y, p1_vy;
     reg signed [19:0] p2_x, p2_y, p2_vy;
@@ -94,7 +94,7 @@ module physic (
             else if (p1_air) begin
                 p1_vy <= p1_vy + GRAVITY; // 重力
                 p1_y <= p1_y + p1_vy;
-                if (p1_y >= FLOOR_Y - P_H) begin // 落地
+                if (p1_y >= FLOOR_Y - P_H && p1_vy > 0) begin // 落地
                     p1_y <= FLOOR_Y - P_H; p1_vy <= 0; p1_air <= 0;
                 end
             end
@@ -107,7 +107,7 @@ module physic (
             else if (p2_air) begin
                 p2_vy <= p2_vy + GRAVITY;
                 p2_y <= p2_y + p2_vy;
-                if (p2_y >= FLOOR_Y - P_H) begin
+                if (p2_y >= FLOOR_Y - P_H && p2_vy > 0) begin
                     p2_y <= FLOOR_Y - P_H; p2_vy <= 0; p2_air <= 0;
                 end
             end

@@ -29,9 +29,9 @@ module physic (
 
     // 速度與重力
     localparam signed [15:0] GRAVITY      = 16'd25;   // 重力 (約 0.4 px)
-    localparam signed [15:0] JUMP_FORCE   = 16'd800;  // 跳躍力 (12.5 px)
-    localparam signed [15:0] MOVE_SPEED   = 16'd320;  // 玩家移動速度 (5 px)
-    localparam signed [15:0] SMASH_X      = 16'd600;  // 殺球 X 速度
+    localparam signed [15:0] JUMP_FORCE   = 16'd550;  // 跳躍力 (12.5 px)
+    localparam signed [15:0] MOVE_SPEED   = 16'd200;  // 玩家移動速度 (5 px)
+    localparam signed [15:0] SMASH_X      = 16'd500;  // 殺球 X 速度
     localparam signed [15:0] SMASH_Y      = 16'd100; // 殺球 Y 速度 (向上)
     localparam signed [15:0] BOUNCE_Y     = -16'd700; // 普通頂球高度
 
@@ -129,14 +129,14 @@ module physic (
                     else begin
                         if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) begin
                             // 球在 P1 右側 -> 往右彈 (正速度)
-                            ball_vx <= 300 * SCALE; 
+                            ball_vx <= 5 * SCALE; 
                         end
                         else begin
                             // 球在 P1 左側 -> 往左彈 (負速度)
-                            ball_vx <= -300 * SCALE;
+                            ball_vx <= -5 * SCALE;
                         end
                         // 強制彈起
-                        if (ball_vy > -500*SCALE) ball_vy <= BOUNCE_Y;
+                        if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
                         else ball_vy <= -ball_vy;
                     end
                 end 
@@ -148,13 +148,13 @@ module physic (
                     else begin
                         if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) begin
                             // 球在 P2 右側 -> 往右彈
-                            ball_vx <= 300 * SCALE;
+                            ball_vx <= 5 * SCALE;
                         end
                         else begin
                             // 球在 P2 左側 -> 往左彈
-                            ball_vx <= -300 * SCALE;
+                            ball_vx <= -5 * SCALE;
                         end
-                        if (ball_vy > -500*SCALE) ball_vy <= BOUNCE_Y;
+                        if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
                         else ball_vy <= -ball_vy;
                     end
                 end
@@ -163,9 +163,15 @@ module physic (
             // --- 球的邊界反彈 ---
             
             // 左牆
-            if (ball_x <= 0) begin ball_x <= 0; ball_vx <= -ball_vx; end
+            if (ball_x <= 1) begin 
+                ball_x <= 2; 
+                ball_vx <= -ball_vx; 
+            end
             // 右牆 (640 - 80)
-            else if (ball_x >= SCREEN_W - BALL_SIZE) begin ball_x <= SCREEN_W - BALL_SIZE; ball_vx <= -ball_vx; end
+            else if (ball_x >= SCREEN_W - BALL_SIZE - 1) begin
+                ball_x <= SCREEN_W - BALL_SIZE - 2;
+                ball_vx <= -ball_vx;
+            end
             
             // 地板 (重置遊戲)
             if (ball_y >= FLOOR_Y - BALL_SIZE) begin
@@ -187,6 +193,9 @@ module physic (
 
             // 遊戲結束重置位置
             if (game_over) begin
+                ball_y <= 50 * SCALE; 
+                ball_vx <= 0; 
+                ball_vy <= 0;
                 if (winner == 1) ball_x <= BALL_START_R;
                 else ball_x <= BALL_START_L;
                 game_over <= 0;

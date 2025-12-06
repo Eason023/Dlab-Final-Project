@@ -38,16 +38,16 @@ module physic (
     localparam PIKA_HALF_H = 10'd32;
 
     // 物理常數
-    localparam GRAVITY   = 10'd1; 
+    localparam GRAVITY   = 10'd1;
     localparam BOUNCE_DAMPING = 10'd55; 
-    localparam PLAYER_SPEED = 10'd6;   
-    localparam JUMP_FORCE   = 10'd16;  
+    localparam PLAYER_SPEED = 10'd1;
+    localparam JUMP_FORCE   = 10'd2;  
 
     // 擊球與推力
-    localparam P1_SMASH_VX = 10'd320; localparam P1_SMASH_VY = -10'd448; 
+    localparam P1_SMASH_VX = 10'd320; localparam P1_SMASH_VY = -10'd448;
     localparam P2_SMASH_VX = -10'd320; localparam P2_SMASH_VY = -10'd448;
-    localparam PLAYER_PUSH_VEL = 10'd96; 
-    localparam NET_CORNER_PUSH = 10'd4; 
+    localparam PLAYER_PUSH_VEL = 10'd96;
+    localparam NET_CORNER_PUSH = 10'd4;
 
     // 場地邊界
     localparam SCREEN_WIDTH  = 10'd320; localparam SCREEN_HEIGHT = 10'd240;

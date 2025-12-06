@@ -13,7 +13,7 @@ module render (
     input  wire [3:0]  p1_score, 
     input  wire [3:0]  p2_score,
 
-    input  wire [3:0]  usr_sw, // 控制 SRAM WE
+    input  wire usr_sw, // 控制 SRAM WE
     
     output reg         player_cover, // P1 接觸到球
     output reg         COM_cover,    // P2 (COM) 接觸到球
@@ -93,7 +93,7 @@ module render (
     reg [17:0] addr_bg, addr_p1, addr_p2, addr_ball;
     wire [11:0] data_bg, data_p1, data_p2, data_ball;
     wire [11:0] data_zeros = 12'h000;
-    wire sram_we = ~usr_sw[3]; 
+    wire sram_we = ~usr_sw; 
 
     // ------------------------------------------------------------------------
     // 4. SRAM INSTANCES

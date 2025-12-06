@@ -29,7 +29,7 @@ module physic (
 
     // 速度與重力
     localparam signed [15:0] GRAVITY      = 16'd25;   // 重力 (約 0.4 px)
-    localparam signed [15:0] JUMP_FORCE   = 16'd550;  // 跳躍力 (12.5 px)
+    localparam signed [15:0] JUMP_FORCE   = 16'd800;  // 跳躍力 (12.5 px)
     localparam signed [15:0] MOVE_SPEED   = 16'd200;  // 玩家移動速度 (5 px)
     localparam signed [15:0] SMASH_X      = 16'd500;  // 殺球 X 速度
     localparam signed [15:0] SMASH_Y      = 16'd100; // 殺球 Y 速度 (向上)
@@ -129,11 +129,11 @@ module physic (
                     else begin
                         if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) begin
                             // 球在 P1 右側 -> 往右彈 (正速度)
-                            ball_vx <= 5 * SCALE; 
+                            ball_vx <= ball_vx + 5 * SCALE; 
                         end
                         else begin
                             // 球在 P1 左側 -> 往左彈 (負速度)
-                            ball_vx <= -5 * SCALE;
+                            ball_vx <= ball_vx - 5 * SCALE;
                         end
                         // 強制彈起
                         if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
@@ -148,11 +148,11 @@ module physic (
                     else begin
                         if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) begin
                             // 球在 P2 右側 -> 往右彈
-                            ball_vx <= 5 * SCALE;
+                            ball_vx <= ball_vx + 5 * SCALE;
                         end
                         else begin
                             // 球在 P2 左側 -> 往左彈
-                            ball_vx <= -5 * SCALE;
+                            ball_vx <= ball_vx - 5 * SCALE;
                         end
                         if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
                         else ball_vy <= -ball_vy;
@@ -181,14 +181,31 @@ module physic (
                 ball_y <= FLOOR_Y - BALL_SIZE; ball_vx <= 0; ball_vy <= 0;
             end
             
-            // 網子 (簡單版：只判定高度)
-            // 如果球在網子中間且高度低於網子，反彈 Y
-            if (ball_y + BALL_SIZE > FLOOR_Y - NET_H && 
-                ball_x + BALL_SIZE > NET_X - 5*SCALE && ball_x < NET_X + 5*SCALE) begin
-                
-                // 簡單處理：彈回上面
-                ball_vy <= -ball_vy;
-                ball_y <= FLOOR_Y - NET_H - BALL_SIZE;
+            // --- 網子碰撞判定 ---
+            if (ball_y + BALL_SIZE > FLOOR_Y - NET_H && ball_x + BALL_SIZE > NET_X - 3*SCALE && ball_x < NET_X + 3*SCALE) begin
+
+                // 如果球中心比較高，就算撞到上面
+                if ((ball_y + (BALL_SIZE >>> 1)) < (FLOOR_Y - NET_H)) begin// [撞到頂部]
+                    // 只有當球是「往下掉」的時候，才讓它彈起來
+                    if (ball_vy > 0) begin
+                        ball_vy <= -ball_vy; 
+                    end
+                end
+                else begin // [撞到側面]
+                    // 判斷是撞到左邊還是右邊
+                    if ((ball_x + (BALL_SIZE >>> 1)) < NET_X) begin// 球在網子左邊 -> 它是往右飛撞過來的
+                        // 所以只有當 vx > 0 (向右) 時才反彈
+                        if (ball_vx > 0) begin
+                            ball_vx <= -ball_vx;
+                        end
+                    end
+                    else begin// 球在網子右邊 -> 它是往左飛撞過來的
+                        // 所以只有當 vx < 0 (向左) 時才反彈
+                        if (ball_vx < 0) begin
+                            ball_vx <= -ball_vx;
+                        end
+                    end
+                end
             end
 
             // 遊戲結束重置位置

@@ -50,6 +50,7 @@ module physic (
     localparam signed [19:0] P1_HIT_END   = 20'd124 * SCALE;
     localparam signed [19:0] P2_HIT_START = 20'd4   * SCALE;//[4 64]
     localparam signed [19:0] P2_HIT_END   = 20'd64  * SCALE;
+    localparam signed [19:0] HIT_HEAD_H   = 20'd40 * SCALE;
     
     localparam signed [19:0] NET_H        = 20'd180 * SCALE;
     localparam signed [19:0] NET_X        = 20'd320 * SCALE;
@@ -148,40 +149,71 @@ module physic (
             else if (p1_hit || p2_hit) begin
                 cooldown <= 15; // 冷卻，避免連點
                 if (p1_hit) begin
-                    if (p1_smash) begin
-                        ball_vx <= SMASH_X;
-                        ball_vy <= SMASH_Y;
-                    end
-                    else begin
-                        if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) begin
-                            // 球在 P1 右側 -> 往右彈 (正速度)
-                            ball_vx <= ball_vx + 5 * SCALE; 
+                    // [判定高度]：球心是否高於頭部線
+                    if ((ball_y + (BALL_SIZE >>> 1)) < (p1_y + HIT_HEAD_H)) begin
+                        // --- 頂球 (Header) ---
+                        ball_y <= p1_y - BALL_SIZE; // 強制推到頭頂
+                        
+                        if (p1_smash) begin
+                            ball_vx <= SMASH_X;
+                            ball_vy <= SMASH_Y; 
                         end
                         else begin
-                            // 球在 P1 左側 -> 往左彈 (負速度)
-                            ball_vx <= ball_vx - 5 * SCALE;
+                            if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) 
+                                ball_vx <= ball_vx + 5 * SCALE; 
+                            else 
+                                ball_vx <= ball_vx - 5 * SCALE;
+                            
+                            if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
+                            else ball_vy <= -ball_vy;
                         end
-                        // 強制彈起
-                        if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
-                        else ball_vy <= -ball_vy;
+                    end 
+                    else begin
+                        // --- 身體撞擊 (Body Block) ---
+                        // 強制橫向推開，不讓球往上彈
+                        if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) begin
+                            ball_x <= p1_x + P1_HIT_END + 1;
+                            ball_vx <= 16'd400; // 往右彈
+                        end else begin
+                            ball_x <= p1_x + P1_HIT_START - BALL_SIZE - 1;
+                            ball_vx <= -16'd400; // 往左彈
+                        end
+                        
+                        // 讓球保持向下掉落，或是微幅反彈 (但不超過重力)
+                        if (ball_vy < 0) ball_vy <= 0; 
                     end
                 end 
+                
                 else if (p2_hit) begin
-                    if (p2_smash) begin
-                        ball_vx <= -SMASH_X;
-                        ball_vy <= SMASH_Y;
-                    end
-                    else begin
-                        if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) begin
-                            // 球在 P2 右側 -> 往右彈
-                            ball_vx <= ball_vx + 5 * SCALE;
+                    if ((ball_y + (BALL_SIZE >>> 1)) < (p2_y + HIT_HEAD_H)) begin
+                        // --- 頂球 ---
+                        ball_y <= p2_y - BALL_SIZE;
+                        
+                        if (p2_smash) begin
+                            ball_vx <= -SMASH_X;
+                            ball_vy <= SMASH_Y; 
                         end
                         else begin
-                            // 球在 P2 左側 -> 往左彈
-                            ball_vx <= ball_vx - 5 * SCALE;
+                            if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) 
+                                ball_vx <= ball_vx + 5 * SCALE;
+                            else 
+                                ball_vx <= ball_vx - 5 * SCALE;
+                            
+                            if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
+                            else ball_vy <= -ball_vy;
                         end
-                        if (ball_vy > -8*SCALE) ball_vy <= BOUNCE_Y;
-                        else ball_vy <= -ball_vy;
+                    end
+                    else begin
+                        // --- 身體撞擊 ---
+                        if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) begin
+                            ball_x <= p2_x + P2_HIT_END + 1;
+                            ball_vx <= 16'd400;
+                        end else begin
+                            ball_x <= p2_x + P2_HIT_START - BALL_SIZE - 1;
+                            ball_vx <= -16'd400;
+                        end
+                        
+                        if (ball_vy < 0) ball_vy <= 0;
                     end
                 end
             end

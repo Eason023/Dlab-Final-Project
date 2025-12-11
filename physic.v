@@ -63,7 +63,7 @@ module physic (
     
     reg p1_air, p2_air;
     reg [9:0] cooldown; // 碰撞冷卻時間
-    reg [9:0] net_cooldown;  // [新增] 網子碰撞冷卻
+    reg [9:0] net_cooldown;  //網子碰撞冷卻
 
     // --- 3. 輸出邏輯 (把數值除以 64 變回正常像素) ---
     // >>> 6 等同於 除以 64
@@ -96,7 +96,7 @@ module physic (
             p2_x <= 520 * SCALE; p2_y <= (480 - 128) * SCALE; p2_vy <= 0; p2_air <= 0;
             
             ball_x <= BALL_START_L; 
-            ball_y <= 50  * SCALE; // <--- 改這裡！從 50px 高度落下
+            ball_y <= 50  * SCALE;
             ball_vx <= 0; ball_vy <= 0;
             
             game_over <= 0; winner <= 0; valid <= 0; cooldown <= 0;
@@ -149,7 +149,7 @@ module physic (
             else if (p1_hit || p2_hit) begin
                 cooldown <= 15; // 冷卻，避免連點
                 if (p1_hit) begin
-                    // [判定高度]：球心是否高於頭部線
+                    //球心是否高於頭部線
                     if ((ball_y + (BALL_SIZE >>> 1)) < (p1_y + HIT_HEAD_H)) begin
                         // --- 頂球 (Header) ---
                         ball_y <= p1_y - BALL_SIZE; // 強制推到頭頂
@@ -256,7 +256,7 @@ module physic (
                         ball_vy <= -ball_vy; 
                     end
                 end
-                else begin // [撞到側面]
+                else begin //撞到側面
                     // 判斷是撞到左邊還是右邊
                     if ((ball_x + (BALL_SIZE >>> 1)) < NET_X) begin// 球在網子左邊 -> 它是往右飛撞過來的
                         // 所以只有當 vx > 0 (向右) 時才反彈
@@ -273,7 +273,6 @@ module physic (
                 end
             end
 
-            // 遊戲結束重置位置
             if (game_over) begin
                 ball_y <= 50 * SCALE; 
                 ball_vx <= 0; 

@@ -77,11 +77,11 @@ module physic (
     wire signed [19:0] next_ball_y = ball_y + ball_vy + GRAVITY;
     // --- 4. 碰撞判定輔助變數 ---
     // 判斷 P1 是否碰到球 (簡單矩形重疊判定)
-    wire p1_hit = (next_ball_x + BALL_SIZE > p1_x + P1_HIT_START) && (next_ball_x < p1_x + P1_HIT_END) &&
-                  (next_ball_y + BALL_SIZE > p1_y) && (next_ball_y < p1_y + P_H);
+    wire p1_hit = (ball_x + BALL_SIZE > p1_x + P1_HIT_START) && (ball_x < p1_x + P1_HIT_END) &&
+                  (ball_y + BALL_SIZE > p1_y) && (ball_y < p1_y + P_H);
                   
-    wire p2_hit = (next_ball_x + BALL_SIZE > p2_x + P2_HIT_START) && (next_ball_x < p2_x + P2_HIT_END) &&
-                  (next_ball_y + BALL_SIZE > p2_y) && (next_ball_y < p2_y + P_H);
+    wire p2_hit = (ball_x + BALL_SIZE > p2_x + P2_HIT_START) && (ball_x < p2_x + P2_HIT_END) &&
+                  (ball_y + BALL_SIZE > p2_y) && (ball_y < p2_y + P_H);
 
     wire signed [15:0] abs_ball_vx = (ball_vx < 0) ? -ball_vx : ball_vx;
     wire signed [15:0] abs_ball_vy = (ball_vy < 0) ? -ball_vy : ball_vy;

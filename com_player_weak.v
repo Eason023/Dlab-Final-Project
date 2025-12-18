@@ -1,4 +1,4 @@
-module com_player_smart (
+module com_player_weak (
     input wire clk,
     input wire rst_n,
     input wire [9:0] ball_x,

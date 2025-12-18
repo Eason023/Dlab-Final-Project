@@ -32,7 +32,7 @@ module physic (
     localparam signed [15:0] GRAVITY      = 16'd25;   // 重力
     localparam signed [15:0] JUMP_FORCE   = 16'd650;  // 跳躍力
     localparam signed [15:0] MOVE_SPEED   = 16'd200;  // 玩家移動速度
-    localparam signed [15:0] SMASH_X      = 16'd1500;  // 殺球 X 速度
+    localparam signed [15:0] SMASH_X      = 16'd750;  // 殺球 X 速度
     localparam signed [15:0] SMASH_Y      = 16'd100; // 殺球 Y 速度
     localparam signed [15:0] BOUNCE_Y     = -16'd750; // 普通頂球高度
     localparam signed [15:0] FRICTION = 16'd3;
@@ -84,6 +84,8 @@ module physic (
 
     wire signed [15:0] abs_ball_vx = (ball_vx < 0) ? -ball_vx : ball_vx;
     wire signed [15:0] abs_ball_vy = (ball_vy < 0) ? -ball_vy : ball_vy;
+    wire signed [19:0] next_ball_x = ball_x + ball_vx;
+    wire signed [19:0] next_ball_y = ball_y + ball_vy + GRAVITY;
     assign ball_is_smash = (abs_ball_vx > SPEED_THRESHOLD) || (abs_ball_vy > SPEED_THRESHOLD);
     assign p1_is_smash = p1_hit && p1_smash;
     assign p2_is_smash = p2_hit && p2_smash;
@@ -155,8 +157,9 @@ module physic (
                         ball_y <= p1_y - BALL_SIZE; // 強制推到頭頂
                         
                         if (p1_smash) begin
-                            ball_vx <= SMASH_X;
-                            ball_vy <= SMASH_Y; 
+                            ball_vx <= SMASH_X * ((p1_move_right)?2:1);
+                            if(p1_air)ball_vy <= SMASH_Y; 
+                            else ball_vy <= -SMASH_Y * 8;
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) 
@@ -190,8 +193,9 @@ module physic (
                         ball_y <= p2_y - BALL_SIZE;
                         
                         if (p2_smash) begin
-                            ball_vx <= -SMASH_X;
-                            ball_vy <= SMASH_Y; 
+                            ball_vx <= (-SMASH_X) * ((p2_move_left)?2:1);
+                            if(p2_air)ball_vy <= SMASH_Y;
+                            else ball_vy <= -SMASH_Y * 8; 
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) 
@@ -247,7 +251,7 @@ module physic (
             
             // --- 網子碰撞判定 ---
             if (net_cooldown > 0) net_cooldown <= net_cooldown - 1;
-            if (ball_y + BALL_SIZE > FLOOR_Y - NET_H && ball_x + BALL_SIZE > NET_X - 3*SCALE && ball_x < NET_X + 3*SCALE && net_cooldown == 0) begin
+            if (next_ball_y + BALL_SIZE > FLOOR_Y - NET_H && next_ball_x + BALL_SIZE > NET_X - 3*SCALE && next_ball_x < NET_X + 3*SCALE && net_cooldown == 0) begin
                 net_cooldown <= 20;
                 // 如果球比較高，就算撞到上面
                 if ((ball_y + (BALL_SIZE >>> 1) + ((BALL_SIZE >>> 2))) < (FLOOR_Y - NET_H)) begin// [撞到頂部]
@@ -262,18 +266,22 @@ module physic (
                         // 所以只有當 vx > 0 (向右) 時才反彈
                         if (ball_vx > 0) begin
                             ball_vx <= -ball_vx;
+                            ball_x <= NET_X - 3*SCALE - BALL_SIZE - 2;
                         end
                     end
                     else begin// 球在網子右邊 -> 它是往左飛撞過來的
                         // 所以只有當 vx < 0 (向左) 時才反彈
                         if (ball_vx < 0) begin
                             ball_vx <= -ball_vx;
+                            ball_x <= NET_X + 3*SCALE + 2;
                         end
                     end
                 end
             end
 
             if (game_over) begin
+                p1_x <= 100 * SCALE; p1_y <= (480 - 128) * SCALE; p1_vy <= 0; p1_air <= 0;
+                p2_x <= 520 * SCALE; p2_y <= (480 - 128) * SCALE; p2_vy <= 0; p2_air <= 0;
                 ball_y <= 50 * SCALE; 
                 ball_vx <= 0; 
                 ball_vy <= 0;

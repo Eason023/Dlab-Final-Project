@@ -64,7 +64,6 @@ module physic (
     
     reg p1_air, p2_air;
     reg [9:0] cooldown; // 碰撞冷卻時間
-    reg [9:0] net_cooldown;  //網子碰撞冷卻
 
     // --- 3. 輸出邏輯 (把數值除以 64 變回正常像素) ---
     // >>> 6 等同於 除以 64
@@ -263,9 +262,7 @@ module physic (
             end
             
             // --- 網子碰撞判定 ---
-            if (net_cooldown > 0) net_cooldown <= net_cooldown - 1;
-            if (next_ball_y + BALL_SIZE > FLOOR_Y - NET_H && next_ball_x + BALL_SIZE > NET_X - 3*SCALE && next_ball_x < NET_X + 3*SCALE && net_cooldown == 0) begin
-                net_cooldown <= 20;
+            if (next_ball_y + BALL_SIZE > FLOOR_Y - NET_H && next_ball_x + BALL_SIZE > NET_X - 3*SCALE && next_ball_x < NET_X + 3*SCALE) begin
                 // 如果球比較高，就算撞到上面
                 if ((ball_y + (BALL_SIZE >>> 1) + ((BALL_SIZE >>> 2))) < (FLOOR_Y - NET_H)) begin// [撞到頂部]
                     // 只有當球是「往下掉」的時候，才讓它彈起來
@@ -301,7 +298,6 @@ module physic (
                 if (winner == 1) ball_x <= BALL_START_R;
                 else ball_x <= BALL_START_L;
                 game_over <= 0;
-                net_cooldown <= 0;
             end
         end 
         else begin

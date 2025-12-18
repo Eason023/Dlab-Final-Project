@@ -34,6 +34,7 @@ module physic (
     localparam signed [15:0] MOVE_SPEED   = 16'd200;  // 玩家移動速度
     localparam signed [15:0] SMASH_X      = 16'd750;  // 殺球 X 速度
     localparam signed [15:0] SMASH_Y      = 16'd100; // 殺球 Y 速度
+    localparam signed [15:0] SMASH_g      = 16'd500;
     localparam signed [15:0] BOUNCE_Y     = -16'd750; // 普通頂球高度
     localparam signed [15:0] FRICTION = 16'd3;
     localparam signed [19:0] FRICTION_SPEED = 20'd400;
@@ -157,9 +158,15 @@ module physic (
                         ball_y <= p1_y - BALL_SIZE; // 強制推到頭頂
                         
                         if (p1_smash) begin
-                            ball_vx <= SMASH_X * ((p1_move_right)?2:1);
-                            if(p1_air)ball_vy <= SMASH_Y; 
-                            else ball_vy <= -SMASH_Y * 15;
+                            if(p1_air) begin
+                                ball_vx <= SMASH_X * ((p1_move_right)?2:1);
+                                ball_vy <= SMASH_Y; 
+                                
+                            end
+                            else begin
+                                ball_vx <= SMASH_g * ((p1_move_right)?2:1);
+                                ball_vy <= (-SMASH_g) * ((p1_move_right)?2:1);                                
+                            end
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) 
@@ -193,9 +200,15 @@ module physic (
                         ball_y <= p2_y - BALL_SIZE;
                         
                         if (p2_smash) begin
-                            ball_vx <= (-SMASH_X) * ((p2_move_left)?2:1);
-                            if(p2_air)ball_vy <= SMASH_Y;
-                            else ball_vy <= -SMASH_Y * 15; 
+                            if(p2_air) begin
+                                ball_vx <= (-SMASH_X) * ((p2_move_left)?2:1);
+                                ball_vy <= SMASH_Y; 
+                                
+                            end
+                            else begin
+                                ball_vx <= (-SMASH_g) * ((p2_move_left)?2:1);
+                                ball_vy <= (-SMASH_g) * ((p2_move_left)?2:1);
+                            end
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) 

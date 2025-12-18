@@ -60,7 +60,7 @@ module physic (
     // --- 2. 內部變數 (全部 Signed，且包含放大倍率) ---
     reg signed [19:0] p1_x, p1_y, p1_vy;
     reg signed [19:0] p2_x, p2_y, p2_vy;
-    reg signed [19:0] ball_x, ball_y, ball_vx, ball_vy;
+    reg signed [19:0] ball_x, ball_y, ball_vx = 0, ball_vy = 0;
     
     reg p1_air, p2_air;
     reg [9:0] cooldown; // 碰撞冷卻時間
@@ -73,19 +73,19 @@ module physic (
     assign p2_pos_y = p2_y >>> 6;
     assign ball_pos_x = ball_x >>> 6;
     assign ball_pos_y = ball_y >>> 6;
-    
+    wire signed [19:0] next_ball_x = ball_x + ball_vx;
+    wire signed [19:0] next_ball_y = ball_y + ball_vy + GRAVITY;
     // --- 4. 碰撞判定輔助變數 ---
     // 判斷 P1 是否碰到球 (簡單矩形重疊判定)
-    wire p1_hit = (ball_x + BALL_SIZE > p1_x + P1_HIT_START) && (ball_x < p1_x + P1_HIT_END) &&
-                  (ball_y + BALL_SIZE > p1_y) && (ball_y < p1_y + P_H);
+    wire p1_hit = (next_ball_x + BALL_SIZE > p1_x + P1_HIT_START) && (next_ball_x < p1_x + P1_HIT_END) &&
+                  (next_ball_y + BALL_SIZE > p1_y) && (next_ball_y < p1_y + P_H);
                   
-    wire p2_hit = (ball_x + BALL_SIZE > p2_x + P2_HIT_START) && (ball_x < p2_x + P2_HIT_END) &&
-                  (ball_y + BALL_SIZE > p2_y) && (ball_y < p2_y + P_H);
+    wire p2_hit = (next_ball_x + BALL_SIZE > p2_x + P2_HIT_START) && (next_ball_x < p2_x + P2_HIT_END) &&
+                  (next_ball_y + BALL_SIZE > p2_y) && (next_ball_y < p2_y + P_H);
 
     wire signed [15:0] abs_ball_vx = (ball_vx < 0) ? -ball_vx : ball_vx;
     wire signed [15:0] abs_ball_vy = (ball_vy < 0) ? -ball_vy : ball_vy;
-    wire signed [19:0] next_ball_x = ball_x + ball_vx;
-    wire signed [19:0] next_ball_y = ball_y + ball_vy + GRAVITY;
+
     assign ball_is_smash = (abs_ball_vx > SPEED_THRESHOLD) || (abs_ball_vy > SPEED_THRESHOLD);
     assign p1_is_smash = p1_hit && p1_smash;
     assign p2_is_smash = p2_hit && p2_smash;

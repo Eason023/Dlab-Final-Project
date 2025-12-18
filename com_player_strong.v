@@ -1,4 +1,4 @@
-module com_player (
+module com_player_strong (
     input wire clk,
     input wire rst_n,
     

@@ -159,7 +159,7 @@ module physic (
                         if (p1_smash) begin
                             ball_vx <= SMASH_X * ((p1_move_right)?2:1);
                             if(p1_air)ball_vy <= SMASH_Y; 
-                            else ball_vy <= -SMASH_Y * 8;
+                            else ball_vy <= -SMASH_Y * 15;
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p1_x + (P_W >>> 1))) 
@@ -195,7 +195,7 @@ module physic (
                         if (p2_smash) begin
                             ball_vx <= (-SMASH_X) * ((p2_move_left)?2:1);
                             if(p2_air)ball_vy <= SMASH_Y;
-                            else ball_vy <= -SMASH_Y * 8; 
+                            else ball_vy <= -SMASH_Y * 15; 
                         end
                         else begin
                             if ((ball_x + (BALL_SIZE >>> 1)) > (p2_x + (P_W >>> 1))) 
